@@ -105,21 +105,24 @@ def harvest_new_threads(reddit, subreddit_name, conn):
         for submission in subreddit.new(limit=100):
             pulled_count += 1
             
-            # Skip if author is deleted before we can even log it
+            # Skip if author is deleted (PRAW returns None for submission.author)
             if submission.author is None: 
-                continue 
+                author = "[Deleted]"
+            else:
+                author = submission.author.name
 
             data = (
                 submission.id,
                 submission.title,
                 submission.selftext or "", 
+                author,
                 submission.created_utc
             )
 
             # Use INSERT OR IGNORE to skip duplicates (where post_id is the primary key)
             cursor.execute("""
-                INSERT OR IGNORE INTO threads (post_id, title, selftext, created_utc) 
-                VALUES (?, ?, ?, ?)
+                INSERT OR IGNORE INTO threads (post_id, title, selftext, author_name, created_utc) 
+                VALUES (?, ?, ?, ?, ?)
             """, data)
             
             # Check how many rows were affected by the last insert command
